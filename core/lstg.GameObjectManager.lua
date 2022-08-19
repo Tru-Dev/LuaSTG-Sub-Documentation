@@ -51,7 +51,7 @@ end
 --- > **Do not call in a coroutine or object method.**  
 ---
 --- Tests for collision between 2 collision groups.  
---- Affected by `lstg.SetWorldFlag()`.
+--- Affected by `lstg.ActiveWorlds()`.
 --- If a collision occurs, triggers the collision callback for the object in group A, with the
 --- `other` parameter being the object in group B.  
 ---@param groupidA integer Must be between 0 and 15.
@@ -333,11 +333,34 @@ end
 
 --------------------------------------------------------------------------------
 
---- World mask (advanced feature)  
---- Rendering and collisions only occur on the worlds specified by the current world flag.  
---- There are up to 64 worlds, each represented by a single bit in the mask.
+--- World mask (advanced feature)
 
---- Sets the current world flag.
+--- Rendering and bound checks only occur on the worlds specified by the current world flag.  
+--- There are up to 64 worlds, each represented by a single bit in the mask.
+---
+--- The world flag set by `lstg.SetWorldFlag()` affects:
+--- - `lstg.ObjRender()`: Only renders objects that are in the worlds specified.
+--- - `lstg.BoundCheck()`: Only performs checking on objects that are in the worlds specified.
+--- - `lstg.DrawGroupCollider()`: Only draws the colliders for objects that are in the worlds specified.
+---
+--- Example:
+--- ```
+--- local obj1 = lstg.New(class)
+--- obj1.world = 0b1001
+--- local obj2 = lstg.New(class)
+--- obj2.world = 0b1100
+--- -- In FrameFunc:
+--- lstg.SetWorldFlag(0b0011)
+--- lstg.BoundCheck() -- only checks if obj1 has exited the bounds
+--- -- In RenderFunc:
+--- lstg.SetWorldFlag(0b0110)
+--- lstg.ObjRender() -- Only renders obj2
+---
+--- -- If lstg.SetWorldFlag(0b1000) had been called instead, both objects would be rendered/boundchecked.
+--- ```
+
+--- Sets the current world flag.  
+--- See the documentation for `lstg.GameObjectManager` for details on how world flags work.
 ---@param mask integer
 function lstg.SetWorldFlag(mask)
 end
@@ -347,12 +370,37 @@ end
 function lstg.GetWorldFlag()
 end
 
---- Checks if the two objects share any worlds (does a bitwise and on their world flags).
+--- Checks if the two world flags share any worlds (does a bitwise and operation on their world flags).
 ---@param maskA integer
 ---@param maskB integer
 ---@return boolean
 function lstg.IsInWorld(maskA, maskB)
 end
+
+--- Collision checks (`lstg.CollisionCheck()` and `lstg.ColliCheck()`) refer to active worlds instead.  
+--- Active worlds refer to the same `world` property on the object, but are stored
+--- separately from the main world flag set in `lstg.SetWorldFlag()` internally.
+---
+--- There can be up to four active world masks. Two flags are checked against the active worlds,
+--- then the result of that is checked against each other.  
+--- This means that if `lstg.IsInWorld(maskA, aw_mask) and lstg.IsInWorld(maskB, aw_mask)`
+--- (where maskA and maskB are inputs to `lstg.IsSameWorld()` and aw_mask is an active world mask)
+--- returns true for any active world mask, then `lstg.IsSameWorld()` returns true, and collisions
+--- are checked against those two input masks.
+---
+--- Example:
+--- ```
+--- local obj1 = lstg.New(class)
+--- obj1.world = 0b0001
+--- local obj2 = lstg.New(class)
+--- obj2.world = 0b0010
+--- local obj3 = lstg.New(class)
+--- obj3.world = 0b0111
+--- lstg.ActiveWorlds(0b0001, 0b0010, 0b0100, 0b1000)
+--- print(lstg.IsSameWorld(obj1.world, obj2.world)) -- false, collisions are not checked between obj1 and obj2
+--- print(lstg.IsSameWorld(obj1.world, obj3.world)) -- true, collisions are checked between obj1 and obj3
+--- print(lstg.IsSameWorld(obj2.world, obj3.world)) -- true, collisions are checked between obj2 and obj3
+--- ```
 
 --- Sets the mask for up to 4 worlds, used in `lstg.IsSameWorld()` and `lstg.ColliCheck()`.  
 --- Parameters default to 0.
