@@ -1,45 +1,46 @@
----=====================================
----WALLE512 随机数发生器包装
----作者:Xiliusha
----邮箱:Xiliusha@outlook.com
----=====================================
+---@meta
+--- LuaSTG Sub Documentation: Random class
+--------------------------------------------------------------------------------
 
-----------------------------------------
----lstg.Random
+--- Uses the WELL512 random number generator.  
+--- Use of this module is not recommended anymore, as there is a new RNG library.  
+--- You can access it through `local random = require("random")`.
 
----@class lstg.Rand @WELL512随机数发生器
-local random = {}
+--------------------------------------------------------------------------------
 
----设置随机数发生器的随机数种子
----@param seed number @随机数种子必须是整数
-function random:Seed(seed)
+---@class lstg.Rand WELL512 RNG
+local R
+
+--- Sets the seed used for the RNG.
+---@param seed integer
+function R:Seed(seed)
 end
 
----获取随机数发生器状态机当前的随机数种子
----@return number @整数
-function random:GetSeed()
+--- Gets the current state of the RNG
+---@return integer
+function R:GetSeed()
 end
 
----随机获得n1到n2范围内的整数
----@param n1 number @必须是整数
----@param n2 number @必须是整数
----@return number @整数
-function random:Int(n1, n2)
+--- Gets a random integer between n1 and n2.
+---@param n1 integer
+---@param n2 integer
+---@return integer
+function R:Int(n1, n2)
 end
 
----随机获得f1到f2范围内的浮点数
+--- Gets a random decimal number between f1 and f2
 ---@param f1 number
 ---@param f2 number
 ---@return number
-function random:Float(f1, f2)
+function R:Float(f1, f2)
 end
 
----随机获得符号，-1、0、1
----@return number
-function random:Sign()
+--- Return either -1 or 1.
+---@return -1|1
+function R:Sign()
 end
 
----构造随机数发生器对象
+--- Returns a new RNG object.
 ---@return lstg.Rand
 function lstg.Rand()
 end

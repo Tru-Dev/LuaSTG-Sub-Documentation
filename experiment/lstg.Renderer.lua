@@ -1,3 +1,6 @@
+---@meta
+--- LuaSTG Sub Experimental Documentation: Renderer
+--------------------------------------------------------------------------------
 
 ---@param tex_name string
 ---@param blend lstg.BlendMode

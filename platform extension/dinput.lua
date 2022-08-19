@@ -1,90 +1,88 @@
---------------------------------------------------------------------------------
---- Windows 平台 DirectInput 拓展
---- 璀境石
+---@meta
+--- LuaSTG Sub Documentation: DirectInput
 --------------------------------------------------------------------------------
 
+--- Migration guide:
+
+-- LuaSTG Plus and Ex Plus simply (and brutally) map DirectInput joystic inputs to
+-- 0x92 (146) - 0xB2 (177) and 0xDF (223) - 0xFE (254).  
+-- Not only is the joystick sensitivity not modifiable, it doesn't enumerate all devices.
+-- LuaSTG Sub exposes the DirectInput API as a platform extension library.
+
+-- Note: DirectInput extensions do not enumerate devices that already support XInput.
+-- To get input from an XInput device, use the XInput library.
+
 --------------------------------------------------------------------------------
---- 迁移指南
 
--- LuaSTG Plus 和 LuaSTG Ex Plus 简单粗暴地将 DirectInput 输入映射到
--- 0x92 (146) 到 0xB2 (177) 和 0xDF (223) 到 0xFE (254)
--- 不仅摇杆灵敏度不可修改，而且没有照顾到不同的设备
--- LuaSTG Sub 则将 DirectInput 的 API 以平台拓展库的方式暴露给开发者
-
--- 注意：DirectInput 拓展不会枚举已经支持 XInput 的设备
--- 要获取 XInput 设备的输入，请使用 XInput 拓展库
-
---------------------------------------------------------------------------------
---- 方法
+--- Methods
 
 ---@class dinput
 local M = {}
 
---- 重新枚举设备，返回设备数量  
---- DirectInput 重新枚举设备的过程非常耗时，该方法应仅在需要的时候调用  
---- dinput 不可用或无可用设备时返回 0  
----@return number
+--- Refresh the device list and return how many were found.  
+--- DirectInput re-enumeration of devices is very time-consuming, so this method
+--- should only be called when needed.  
+--- Returns 0 if dinput is unavailable or if no device is available.
+---@return integer
 function M.refresh()
 end
 
---- 获得设备数量  
---- dinput 不可用或无可用设备时返回 0  
----@return number
+--- Gets the number of devices.  
+--- Returns 0 if dinput is unavailable or if no device is available.
+---@return integer
 function M.count()
 end
 
---- 获取设备输入，每帧需要且只需调用一次
+--- Gets device input, call only once per frame.
 function M.update()
 end
 
---- 获得设备的模拟量输入的取值范围  
---- 可用于解析 dinput.RawState  
---- 如果最小值与最大值相等则代表该模拟量不存在（与设备有关）  
---- 索引从 1 开始  
---- dinput 不可用时返回 nil  
----@param index number
----@return dinput.AxisRange
+---@class dinput.AxisRange
+---@field XMin number
+---@field XMax number
+---@field YMin number
+---@field YMax number
+---@field ZMin number
+---@field ZMax number
+---@field RxMin number
+---@field RxMax number
+---@field RyMin number
+---@field RyMax number
+---@field RzMin number
+---@field RzMax number
+---@field Slider0Min number
+---@field Slider0Max number
+---@field Slider1Min number
+---@field Slider1Max number
+
+--- Gets the value range of the device's analog input.  
+--- Can be used to parse `dinput.RawState`.  
+--- If the minimum value is equal to the maximum value, then that analog input does not exist.  
+--- Index starts at 1.  
+--- Returns nil if dinput is not available.
+---@param index integer
+---@return dinput.AxisRange|nil
 function M.getAxisRange(index)
-    ---@class dinput.AxisRange
-    local t = {
-        XMin = 0,  YMin = 0,  ZMin = 0,
-        XMax = 0,  YMax = 0,  ZMax = 0,
-        RxMin = 0, RyMin = 0, RzMin = 0,
-        RxMax = 0, RyMax = 0, RzMax = 0,
-        Slider0Min = 0, Slider1Min = 0,
-        Slider0Max = 0, Slider1Max = 0,
-    }
-    return t
 end
 
---- 参考 https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416627(v=vs.85)  
---- 索引从 1 开始  
---- dinput 不可用时返回 nil  
----@param index number
+--- See https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416627(v=vs.85)
+---@class dinput.RawState
+---@field lX number
+---@field lY number
+---@field lZ number
+---@field lRx number
+---@field lRy number
+---@field lRz number
+---@field rglSlider number[] length 2
+---@field rgdwPOV number[] length 4, set to 0xFFFF when not pointing to anything
+---@field rgbButtons boolean[] length 32
+
+--- See https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416627(v=vs.85)  
+--- Index starts at 1.  
+--- Returns nil if dinput is not available.
+---@param index integer
 ---@return dinput.RawState
 function M.getRawState(index)
-    ---@class dinput.RawState
-    local t = {
-        lX = 0,
-        lY = 0,
-        lZ = 0,
-        lRx = 0,
-        lRy = 0,
-        lRz = 0,
-        ---@type number[]
-        rglSlider = { 0, 0 },
-        --- 不指向任何方向时为 0xFFFF
-        ---@type number[]
-        rgdwPOV = { 0, 0, 0, 0 },
-        ---@type boolean[]
-        rgbButtons = {
-            false, false, false, false, false, false, false, false,
-            false, false, false, false, false, false, false, false,
-            false, false, false, false, false, false, false, false,
-            false, false, false, false, false, false, false, false,
-        },
-    }
-    return t
 end
 
 return M

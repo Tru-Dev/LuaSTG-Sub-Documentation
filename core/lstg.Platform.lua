@@ -1,27 +1,26 @@
---------------------------------------------------------------------------------
---- LuaSTG Sub 平台拓展
+---@meta
+--- LuaSTG Sub Documentation: Platform Operations
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 --- Win32 API
 
---- 警告：该功能慎用，可能会被杀毒软件误杀
---- 注意：该 API 未来可能会被移除，并作为 Windows 平台拓展提供
---- wait 和 show 如果不填写，默认为 true
+--- Executes an external program.
+---
+--- Warning: Use with caution, may be killed by antivirus software.
+--- Note: this function may be removed in the future and made available as part of a
+---     Windows platform extension API.
 ---@param path string
----@param arg string
----@param workingdir string
----@param wait boolean
----@param show boolean
+---@param arg string|nil Defaults to no arguments.
+---@param workingdir string|nil Defaults to the current directory.
+---@param wait boolean|nil Defaults to `true`
+---@param show boolean|nil Defaults to `true`
 ---@return boolean
----@overload fun(path:string):boolean
----@overload fun(path:string, arg :string):boolean
----@overload fun(path:string, arg :string, workingdir:string):boolean
----@overload fun(path:string, arg :string, workingdir:string, wait:boolean):boolean
 function lstg.Execute(path, arg, workingdir, wait, show)
 end
 
---- 注意：该 API 未来可能会被移除，并作为 Windows 平台拓展提供
+--- Note: this function may be removed in the future and made available as part of a
+---     Windows platform extension API.
 ---@param title string
 ---@param text string
 ---@param flags number

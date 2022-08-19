@@ -1,18 +1,16 @@
---------------------------------------------------------------------------------
---- LuaSTG Sub 键盘输入
---- LuaSTG Sub keyboard input
+---@meta
+--- LuaSTG Sub Documentation: Keyboard Input
 --------------------------------------------------------------------------------
 
---- [LuaSTG Sub v0.15.6 新增]  
+--- New in LuaSTG Sub v0.15.6.
 ---@class lstg.Input.Keyboard
-local M = {}
+local M
 
 --------------------------------------------------------------------------------
---- 按键码常量
---- 注意：这些常量的值和内部实现有关，请勿直接使用数字值，应该通过常量访问
---- Key code constants
---- Note: The values of these constants are related to the internal implementation,
---- DO NOT use numeric values directly, they should be accessed through constants
+
+--- Key code constants  
+--- Note: The values of these constants are related to the internal implementation of LuaSTG Sub.  
+--- DO NOT use numeric values directly, they should be accessed through these constants.
 
 M.None = 0
 
@@ -201,7 +199,7 @@ M.Quotes = 222
 --M.Oem102 = 226
 --M.ProcessKey = 229
 
---- [LuaSTG Sub v0.17.0 新增]  
+--- Added in LuaSTG Sub v0.17.0.
 M.NumPadEnter = 232
 
 --M.OemCopy = 242
@@ -217,13 +215,10 @@ M.NumPadEnter = 232
 --M.OemClear = 254
 
 --------------------------------------------------------------------------------
---- 方法
---- Methods
 
---- [LuaSTG Sub v0.15.6 新增]  
---- 获取键盘按键状态  
---- [LuaSTG Sub v0.15.6 Add]  
---- Get keyboard key state  
+--- Keyboard methods
+
+--- Gets the state of the specified key.
 ---@param code number
 ---@return boolean
 function M.GetKeyState(code)

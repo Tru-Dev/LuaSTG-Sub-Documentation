@@ -1,5 +1,9 @@
+---@meta
+--- LuaSTG Sub Extension Documentation: Bitwise Operations (LuaJIT)
+--------------------------------------------------------------------------------
+
 ---@class bit
-local M = {}
+local M
 bit = M
 
 --- Normalizes a number to the numeric range (32 bit interger) for bit operations and returns it.
@@ -13,71 +17,71 @@ end
 --- Positive numbers between 1 and 8 generate lowercase hex digits.
 --- Negative numbers generate uppercase hex digits.
 ---@param x number
----@param n number @default to 8
+---@param n number Defaults to 8
 ---@return string
 ---@overload fun(x:number):string
 function M.tohex(x, n)
 end
 
---- bitwise not
+--- Bitwise not.
 ---@param x number
 ---@return number
 function M.bnot(x)
 end
 
---- bitwise and
+--- Bitwise and.
 ---@param x1 number
 ---@param x2 number
----@vararg number
+---@param ... number
 ---@return number
 function M.band(x1, x2, ...)
 end
 
---- bitwise or
+--- Bitwise or.
 ---@param x1 number
 ---@param x2 number
----@vararg number
+---@param ... number
 ---@return number
 function M.bor(x1, x2, ...)
 end
 
---- bitwise xor
+--- Bitwise xor.
 ---@param x1 number
 ---@param x2 number
----@vararg number
+---@param ... number
 ---@return number
 function M.bxor(x1, x2, ...)
 end
 
---- bitwise logical left-shift
+--- Bitwise logical left-shift.
 ---@param x number
 ---@param n number
 ---@return number
 function M.lshift(x, n)
 end
 
---- bitwise logical right-shift
+--- Bitwise logical right-shift.
 ---@param x number
 ---@param n number
 ---@return number
 function M.rshift(x, n)
 end
 
---- bitwise arithmetic right-shift
+--- Bitwise arithmetic right-shift.
 ---@param x number
 ---@param n number
 ---@return number
 function M.arshift(x, n)
 end
 
---- bitwise left rotation
+--- Bitwise left rotation.
 ---@param x number
 ---@param n number
 ---@return number
 function M.rol(x, n)
 end
 
---- bitwise right rotation
+--- Bitwise right rotation.
 ---@param x number
 ---@param n number
 ---@return number

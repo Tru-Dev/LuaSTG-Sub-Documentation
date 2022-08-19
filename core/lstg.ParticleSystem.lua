@@ -1,42 +1,32 @@
---------------------------------------------------------------------------------
---- LuaSTG Sub 粒子系统（兼容 HGE 粒子系统）
---- 璀境石
+---@meta
+--- LuaSTG Sub Documentation: HGE Compatible Particle System
 --------------------------------------------------------------------------------
 
---- [LuaSTG Sub v0.17.0 新增]  
+--- Added in LuaSTG Sub v0.17.0.
 ---@class lstg.ParticleSystem.Vector2
-local T_vec2 = {
-    x = 0.0,
-    y = 0.0,
-}
+---@field x number
+---@field y number
 
---- [LuaSTG Sub v0.17.0 新增]  
+--- Added in LuaSTG Sub v0.17.0.
 ---@class lstg.ParticleSystem.Color4F
-local T_col4 = {
-    r = 0.0,
-    g = 0.0,
-    b = 0.0,
-    a = 0.0,
-}
+---@field r number
+---@field g number
+---@field b number
+---@field a number
 
---- [LuaSTG Sub v0.17.0 新增]  
+--- Added in LuaSTG Sub v0.17.0.
 ---@class lstg.ParticleSystem
 local C = {}
 
 --------------------------------------------------------------------------------
---- API
 
---- rot 为角度制，可以让实际发射角度在发射角度 Direction 基础上进一步旋转  
---- 如果不填写 rot 参数，则不会（修改）更新 Rotation  
---- 如果不填写 x 和 y 参数，则不会（修改）更新 Center  
---- 时间增量 time_delta 默认为 1.0 / 60.0  
----@param dt number
----@param x number
----@param y number
----@param rot number
----@overload fun()
----@overload fun(dt:number)
----@overload fun(dt:number, x:number, y:number)
+--- Particle system API
+
+--- Updates the particle system (optionally with new parameters).
+---@param dt number Defaults to 1/60 (one frame)
+---@param x number|nil
+---@param y number|nil
+---@param rot number|nil
 function C:Update(dt, x, y, rot)
 end
 
@@ -44,25 +34,29 @@ end
 function C:Render(scale)
 end
 
---- 默认情况下，开启旧行为模式  
+--- Sets old behavior mode, which causes particles to behave as in LuaSTG Plus, Ex Plus, and -x.
+---
+--- In old behavior mode:  
+--- * The emission angle direction defined by the HGE particle effects file psi is ignored.
+--- * The `Relative` switch that relates the emission angle to the movement direction
+---   is ignored as defined in the HGE particle effects file.
 --- 
---- 在旧行为模式下：  
----   * HGE 粒子特效文件 psi 定义的发射角度 Direction 被忽略  
----   * HGE 粒子特效文件 psi 定义的让发射角度与移动方向相关的开关 Relative 被忽略  
---- 和 LuaSTG Plus、LuaSTG Ex Plus、LuaSTG-x 一致  
---- 
---- 关闭旧行为模式后：  
----   * HGE 粒子特效文件 psi 定义的发射角度 Direction 不会忽略，最终粒子发射角度会和 Rotation 相加  
----   * HGE 粒子特效文件 psi 定义的让发射角度与移动方向相关的开关 Relative 不会忽略  
---- 
---- 和 HGE 粒子特效编辑器效果一致  
---- 但是，即使如此，仍然不推荐开启 Relative 功能，除非 Rotation 始终为 0  
+--- After turning off the old behavior mode:  
+--- * The emission angle direction defined by the HGE particle effects file psi is no longer ignored,
+---   this angle is added to the rotation parameter (see `lstg.ParticleSystem.setRotation()`).
+--- * The `Relative` switch  is no longer ignored, which means the emission angle changes with movement.
+---
+--- It is not recommended to turn on Relative unless Rotation is always 0.
+---
+--- By default, old behavior mode is turned on.
 ---@param enable boolean
 function C:SetOldBehavior(enable)
 end
 
 --------------------------------------------------------------------------------
---- 拓展 API，支持动态修改粒子系统参数，并部分兼容 LuaSTG-x
+
+--- Extended API, supports dynamic modification of particle system parameters, and is partially
+--- compatible with LuaSTG-x.
 
 ---@return number
 function C:getAliveCount()
@@ -76,12 +70,12 @@ end
 function C:getCenter()
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 返回的是包装过的 lstg.Color
+--- Not directly compatible with LuaSTG-x, as there this function returns a `lstg.Color` instead.
 ---@return lstg.ParticleSystem.Color4F
 function C:getColorEnd()
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 返回的是包装过的 lstg.Color
+--- Not directly compatible with LuaSTG-x, as there this function returns a `lstg.Color` instead.
 ---@return lstg.ParticleSystem.Color4F
 function C:getColorStart()
 end
@@ -90,8 +84,7 @@ end
 function C:getColorVar()
 end
 
---- 【行为可变更】  
---- 默认情况下未使用该属性，请查看 `SetOldBehavior` 方法获得更多信息  
+--- This property is not used by default, please see `lstg.ParticleSystem.SetOldBehavior` for details.
 ---@return number
 function C:getDirection()
 end
@@ -128,30 +121,28 @@ end
 function C:getRadialAccelMin()
 end
 
---- 【行为可变更】  
---- 默认情况下未使用该属性，请查看 `SetOldBehavior` 方法获得更多信息  
+--- This property is not used by default, please see `lstg.ParticleSystem.SetOldBehavior` for details.
 ---@return boolean
 function C:getRelative()
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 返回的是 lstg.RenderMode 对象
+--- Not compatible with LuaSTG-x, as there this function returns a `lstg.RenderMode` object.
 ---@return lstg.BlendMode
 function C:getRenderMode()
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 返回的是 lstg.ResParticle 对象  
---- LuaSTG Sub 还未将资源对象化，因此只能返回资源名称  
+--- Not compatible with LuaSTG-x, as there this function returns a `lstg.ResParticle` object.  
+--- LuaSTG does not make an object out of the resource yet, so it can only return its name.
 ---@return string
 function C:getResource()
 end
 
---- 【行为可变更】  
---- 默认情况下 Rotation 会覆盖 Direction 属性，请查看 `SetOldBehavior` 方法获得更多信息  
+--- By default Rotation overrides the Direction property, please see `lstg.ParticleSystem.SetOldBehavior` for details.
 ---@return number
 function C:getRotation()
 end
 
---- 32 位无符号整数随机数种子
+--- 32-bit unsigned integer RNG seed.
 ---@return number
 function C:getSeed()
 end
@@ -216,12 +207,12 @@ end
 function C:setCenter(vec2)
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 传入的是包装过的 lstg.Color
+--- Not directly compatible with LuaSTG-x, as there this function accepts a `lstg.Color` instead.
 ---@param col4f lstg.ParticleSystem.Color4F
 function C:setColorEnd(col4f)
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 传入的是包装过的 lstg.Color
+--- Not directly compatible with LuaSTG-x, as there this function accepts a `lstg.Color` instead.
 ---@param col4f lstg.ParticleSystem.Color4F
 function C:setColorStart(col4f)
 end
@@ -230,14 +221,13 @@ end
 function C:setColorVar(v)
 end
 
---- 【行为可变更】  
---- 默认情况下未使用该属性，请查看 `SetOldBehavior` 方法获得更多信息  
+--- This property is not used by default, please see `lstg.ParticleSystem.SetOldBehavior` for details.
 ---@param v number
 function C:setDirection(v)
 end
 
---- 发射密度（个/秒），参数 n 为整数
----@param n number
+--- Emission density is in particles/second.
+---@param n integer
 function C:setEmissionFreq(n)
 end
 
@@ -257,7 +247,7 @@ end
 function C:setLifeMin(v)
 end
 
---- 粒子系统单次运作时间（秒）
+--- Amount of time that the particle system runs upon firing, in seconds.
 ---@param v number
 function C:setLifetime(v)
 end
@@ -270,19 +260,17 @@ end
 function C:setRadialAccelMin(v)
 end
 
---- 【行为可变更】  
---- 默认情况下未使用该属性，请查看 `SetOldBehavior` 方法获得更多信息  
+--- This property is not used by default, please see `lstg.ParticleSystem.SetOldBehavior` for details.
 ---@param b boolean
 function C:setRelative(b)
 end
 
---- 和 LuaSTG-x 不兼容，LuaSTG-x 传入的是 lstg.RenderMode 对象
+--- Not compatible with LuaSTG-x, as there this function accepts a `lstg.RenderMode` instead.
 ---@param blend lstg.BlendMode
 function C:setRenderMode(blend)
 end
 
---- 【行为可变更】  
---- 默认情况下 Rotation 会覆盖 Direction 属性，请查看 `SetOldBehavior` 方法获得更多信息  
+--- By default Rotation overrides the Direction property, please see `lstg.ParticleSystem.SetOldBehavior` for details.
 ---@param v number
 function C:setRotation(v)
 end
@@ -337,9 +325,10 @@ function C:setTangentialAccelMin(v)
 end
 
 --------------------------------------------------------------------------------
---- 创建
 
---- 从粒子系统资源 ps_name 创建粒子系统实例
+--- Create a particle system
+
+--- Creates a particle system instance from the resource `ps_name`.
 ---@param ps_name string
 ---@return lstg.ParticleSystem
 function lstg.ParticleSystemData(ps_name)

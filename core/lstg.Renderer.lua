@@ -1,84 +1,106 @@
+---@meta
+--- LuaSTG Sub Documentation: Renderer
 --------------------------------------------------------------------------------
---- LuaSTG Sub 渲染器
---- 璀境石
---------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
---- 迁移指南
+--- Migration guide:
 
--- 关于新增的 lstg.SetScissorRect：
--- LuaSTG Sub 默认开启裁剪功能，因此建议和 lstg.SetViewport 一起调用，参数可相同
--- 否则可能会出现渲染不出画面的问题
+--- Regarding `lstg.SetScissorRect()`:  
+--- LuaSTG Sub enables cropping by default, so make sure you call it with `lstg.SetViewport()`,
+--- otherwise problems may occur (you may see a purely black screen).
 
--- 关于 lstg.RenderClear：
--- 在 Direct3D 9 中，微软做了一些魔法，只会清空视口范围
--- 这并不符合现在的图形 API 的风格
--- 请通过 lstg.RenderRect 绘制单色矩形来模拟旧行为
+--- Regarding `lstg.RenderClear()`:  
+--- In Direct3D 9, it would only clear the viewport range,
+--- which is not in line with current graphics APIs.  
+--- Please use `lstg.RenderRect()` to simulate the old behavior.
 
--- 关于 lstg.PostEffectCapture 和 lstg.PostEffectApply：
--- 已经移除
--- 建议通过 lstg.CreateRenderTarget、lstg.PushRenderTarget、
--- lstg.PopRenderTarget、lstg.PostEffect 代替
+--- Regarding `lstg.PostEffectCapture()`/`lstg.PostEffectApply()`:  
+--- These methods were removed.  
+--- Create a render target, and then use `lstg.PostEffect()` instead.
 
--- 关于 LuaSTG Ex Plus 曾经加入过的 lstg.SetTextureSamplerState：
--- 已经移除
--- 以后可能会将采样器状态和纹理绑定，或者在 RenderTexture 等 API 添加采样器状态参数
+--- Regarding `lstg.SetTextureSamplerState()`:  
+--- This method has been removed and readded with a different API, see the file
+--- `experiment/lstg.Renderer.lua` for details.
 
--- 关于 LuaSTG Ex Plus 曾经加入过的 lstg.RenderModel：
--- 已经替换为 glTF 模型，其实现也有变动
+--- Regarding `lstg.RenderModel()` from Ex Plus:  
+--- The model type has changed to glTF, and the implementation has changed.
 
 --------------------------------------------------------------------------------
---- 混合模式
 
--- 关于 LuaSTG 的混合模式：
--- LuaSTG 的混合模式由两个部分组成，顶点色混合与渲染管线的混合模式
--- 顶点色混合有
---     mul 顶点色与采样的纹理色的 RGBA 通道相乘
---     add 顶点色与采样的纹理色的 RGB 通道相加，A 通道相乘
--- 渲染管线混合模式有
---     alpha  根据 A 通道进行透明度混合
---     add    颜色相加
---     rev    渲染目标颜色减去像素着色器输出的颜色
---     sub    像素着色器输出的颜色减去渲染目标颜色
---     min    使用颜色值最小的颜色
---     max    使用颜色值最大的颜色
---     mul    颜色相乘（PS 的正片叠底）
---     screen 特殊混合模式，PS 的滤色混合模式
--- 单独的 LuaSTG 混合模式（非顶点色 + 渲染管线混合模式的组合）
---     "one"       输出的颜色覆盖渲染目标上的颜色（相当于禁用混合）
---     "alpha+bal" 通过图片的颜色对渲染目标进行反色，图片黑色区域代表不反色，白色区域则代表反色，中间值则用于过渡
--- 需要注意的是 lstg.PostEffect 方法中顶点色混合会失效
--- 这是因为顶点色混合在内置像素着色器中完成，但是屏幕后处理也通过开发者自定义的像素着色器完成
+--- Blend modes:
 
----@alias lstg.BlendMode '""' | '"mul+alpha"' | '"mul+add"' | '"mul+rev"' | '"mul+sub"' | '"add+alpha"' | '"add+add"' | '"add+rev"' | '"add+sub"' | '"alpha+bal"' | '"mul+min"' | '"mul+max"' | '"mul+mul"' | '"mul+screen"' | '"add+min"' | '"add+max"' | '"add+mul"' | '"add+screen"' | '"one"'
+--- Blend modes consist of two parts, vertex color blending and pixel blending.  
+--- Vertex color is what is set in `lstg.SetImageState()`, alongside this blend mode.  
+--- All blend operations are in the range of 0 to 1, as floats.
+--- ```
+--- Vertex blending:
+---     mul     Vertex ARGB * image ARGB
+---     add     Vertex RGB + image RGB, vertex A * image A
+--- Pixel blending:
+---     alpha   Blends colors according to alpha value.
+---     add     Image RGB + target RGB
+---     rev     Target RGB - image RGB
+---     sub     Image RGB - target RGB
+---     min     Renders the color with the lowest value.
+---     max     Renders the color with the highest value.
+---     mul     Image RGB * target RGB
+---     screen  Special blend mode.
+--- Miscellaneous blend modes:
+---     "one"       Target RGB = image RGB (overwrite)
+---     "alpha+bal" Inverts the target RGB dependent on the image value, black = same, white = invert.
+--- ```
+--- Note: vertex blending does not work with `lstg.PostEffect()`.  
+--- You should be able to get around this by wrapping the call to it in another render target, however.
+
+--- Blend mode operation. `v` is vertex color, `i` is image color, and `t` is target color.
+---@alias lstg.BlendMode
+---| ""             # Equivalent to mul+alpha (= v.rgb * i.rgb and lerp t.rgb based on v.a * i.a)
+---| "mul+alpha"    # = v.rgb * i.rgb and lerp to t.rgb based on v.a * i.a
+---| "mul+add"      # = (v.rgb * i.rgb) + t.rgb
+---| "mul+rev"      # = t.rgb - (v.rgb * i.rgb)
+---| "mul+sub"      # = (v.rgb * i.rgb) - t.rgb
+---| "add+alpha"    # = v.rgb + i.rgb and lerp to t.rgb based on v.a * i.a
+---| "add+add"      # = (v.rgb + i.rgb) + t.rgb
+---| "add+rev"      # = t.rgb - (v.rgb + i.rgb)
+---| "add+sub"      # = (v.rgb + i.rgb) - t.rgb
+---| "alpha+bal"    # = dark = t.rgb, light = 1 - t.rgb
+---| "mul+min"      # = min(v.rgb * i.rgb, t.rgb)
+---| "mul+max"      # = max(v.rgb * i.rgb, t.rgb)
+---| "mul+mul"      # = (v.rgb * i.rgb) * t.rgb
+---| "mul+screen"   # = screen(v.rgb * i.rgb, t.rgb)
+---| "add+min"      # = min(v.rgb + i.rgb, t.rgb)
+---| "add+max"      # = max(v.rgb + i.rgb, t.rgb)
+---| "add+mul"      # = (v.rgb + i.rgb) * t.rgb
+---| "add+screen"   # = screen(v.rgb + i.rgb, t.rgb)
+---| "one"          # = v.argb * i.argb
 
 --------------------------------------------------------------------------------
---- 图形功能
 
---- 启动渲染器
+--- Renderer methods
+
+--- Starts the renderer.
 function lstg.BeginScene()
 end
 
---- 结束渲染并提交
+--- Finishes rendering and displays updated scene.
 function lstg.EndScene()
 end
 
 --------------------------------------------------------------------------------
---- 渲染管线
 
---- 设置雾（这 API 谁他妈设计的）
---- 不传递参数时关闭雾功能
---- 当 near 和 far 不小于 0 且 near 小于 far 时，为线性雾
---- 当 near 为 -1.0 时，为指数雾，far 表示雾密度
---- 当 near 为 -2.0 时，为二次指数雾，far 表示雾密度
----@param near number
----@param far number
+--- Render pipeline methods
+
+--- Sets the fog level.
+---@param near number > 0 means linear fog, == -1.0 means exponential fog, == -2.0 means quadratic fog.
+---@param far number If fog is linear, this is as far as the fog goes. Else, this means fog density.
 ---@param color lstg.Color
----@overload fun()
 function lstg.SetFog(near, far, color)
 end
 
---- 设置视口，原点位于窗口左下角，x 轴朝右 y 轴朝上
+--- Disables fog.
+function lstg.SetFog()
+end
+
+--- Sets the viewport. Origin is bottom left, positive directions are up and right.
 ---@param left number
 ---@param right number
 ---@param bottom number
@@ -86,8 +108,9 @@ end
 function lstg.SetViewport(left, right, bottom, top)
 end
 
---- [LuaSTG Sub 新增]
---- 设置裁剪矩形，原点位于窗口左下角，x 轴朝右 y 轴朝上
+--- Sets the crop rectangle for rendering. Origin is bottom left, positive directions are up and right.
+---
+--- Added in LuaSTG Sub.
 ---@param left number
 ---@param right number
 ---@param bottom number
@@ -95,7 +118,7 @@ end
 function lstg.SetScissorRect(left, right, bottom, top)
 end
 
---- 设置正交摄像机
+--- Sets up the range of render units for the viewport.
 ---@param left number
 ---@param right number
 ---@param bottom number
@@ -103,7 +126,11 @@ end
 function lstg.SetOrtho(left, right, bottom, top)
 end
 
---- 设置透视摄像机，视角为弧度制（非常需要注意）
+--- Sets up a perspective camera.  
+--- Warning: `fovy` is in radians.  
+--- `x, y, z` parameters set the camera position.  
+--- `at` parameters set where the position where the camera is looking.  
+--- `up` parameters set which way is up for the camera.
 ---@param x number
 ---@param y number
 ---@param z number
@@ -113,48 +140,50 @@ end
 ---@param upx number
 ---@param upy number
 ---@param upz number
----@param fovy number
----@param aspect number
----@param zn number
----@param zf number
+---@param fovy number Vertical field of view, in radians.
+---@param aspect number Aspect ratio to render at.
+---@param zn number Near plane.
+---@param zf number Far plane.
 function lstg.SetPerspective(x, y, z, atx, aty, atz, upx, upy, upz, fovy, aspect, zn, zf)
 end
 
---- 控制是否使用深度缓冲区，0 关闭，1 开启
----@param state number
+--- Controls the depth buffer. 0 = off, 1 = on.
+---@param state integer
 function lstg.SetZBufferEnable(state)
 end
 
 --------------------------------------------------------------------------------
---- 渲染目标
 
---- [LuaSTG Sub 更改]
---- 使用指定颜色清空渲染目标
+--- Render target methods
+
+--- Clears the render target with the specified color.  
+---
+--- Changed in LuaSTG Sub.
 ---@param color lstg.Color
 function lstg.RenderClear(color)
 end
 
---- 以指定深度值清空深度缓冲区，一般填 1.0
+--- Clear the depth bufffer with the specified depth value, usually 1.0.
 ---@param depth number
 function lstg.ClearZBuffer(depth)
 end
 
--- 关于渲染目标栈：
--- LuaSTG Plus、LuaSTG Ex Plus、LuaSTG Sub 通过栈来管理渲染目标的设置，以简化使用
+-- Render targets are set via a stack to simplify their use.
 
---- 将一个渲染目标加入栈顶
+--- Pushes the specified render target.
 ---@param rtname string
 function lstg.PushRenderTarget(rtname)
 end
 
---- 弹出一个渲染目标
+--- Pops a render target.
 function lstg.PopRenderTarget()
 end
 
 --------------------------------------------------------------------------------
---- 画面绘制
 
---- 在矩形区域内绘制图片
+--- Drawing methods
+
+--- Draws an image in the specified rectangle.
 ---@param imgname string
 ---@param left number
 ---@param right number
@@ -163,41 +192,32 @@ end
 function lstg.RenderRect(imgname, left, right, bottom, top)
 end
 
---- [受到 lstg.SetImageScale 影响]  
---- 绘制图片
+--- Draws an image.  
+--- Affected by `lstg.SetImageScale()`.
 ---@param imgname string
 ---@param x number
 ---@param y number
----@param rot number
----@param hscale number
----@param vscale number
----@param z number
----@overload fun(imgname:string, x:number, y:number)
----@overload fun(imgname:string, x:number, y:number, rot:number)
----@overload fun(imgname:string, x:number, y:number, rot:number, hscale:number)
----@overload fun(imgname:string, x:number, y:number, rot:number, hscale:number, vscale:number)
+---@param rot number|nil Image rotation, 0 if unspecified.
+---@param hscale number|nil Image horizontal scale, 1 if unspecified.
+---@param vscale number|nil Image vertical scale, 1 if unspecified.
+---@param z number|nil
 function lstg.Render(imgname, x, y, rot, hscale, vscale, z)
 end
 
---- [LuaSTG Ex Plus 新增]
---- [受到 lstg.SetImageScale 影响]  
---- 绘制图片序列
+--- Draws an animation.  
+--- Affected by `lstg.SetImageScale()`.
 ---@param aniname string
----@param anitimer number
+---@param anitimer integer Animation frame.
 ---@param x number
 ---@param y number
----@param rot number
----@param hscale number
----@param vscale number
----@param z number
----@overload fun(aniname:string, anitimer:number, x:number, y:number)
----@overload fun(aniname:string, anitimer:number, x:number, y:number, rot:number)
----@overload fun(aniname:string, anitimer:number, x:number, y:number, rot:number, hscale:number)
----@overload fun(aniname:string, anitimer:number, x:number, y:number, rot:number, hscale:number, vscale:number)
+---@param rot number|nil Image rotation, 0 if unspecified.
+---@param hscale number|nil Image horizontal scale, 1 if unspecified.
+---@param vscale number|nil Image vertical scale, 1 if unspecified.
+---@param z number|nil
 function lstg.RenderAnimation(aniname, anitimer, x, y, rot, hscale, vscale, z)
 end
 
---- 指定 4 个顶点位置绘制图片
+--- Specifies 4 vertex positions to draw the image on.
 ---@param imgname string
 ---@param x1 number
 ---@param y1 number
@@ -214,144 +234,142 @@ end
 function lstg.Render4V(imgname, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4)
 end
 
---- 指定 4 个顶点绘制纹理
---- 每个顶点的结构为 { x:number, y:number, z:number, u:number, v:number, color:lstg.Color }
---- uv 坐标以图片左上角为原点，u 轴向右，v 轴向下，单位为像素（不是 0.0 到 1.0）
+--- Specifies 4 vertices to draw the texture resource on.  
+--- Each vertex is specified as { x, y, z, u, v, color }.  
+--- UV coordinates are in pixels (not 0.0 to 1.0), the top left is the origin, u increasing to the
+--- right, and v increasing downwards.
 ---@param texname string
 ---@param blendmode lstg.BlendMode
----@param v1 number[]
----@param v2 number[]
----@param v3 number[]
----@param v4 number[]
+---@param v1 { [1]: number, [2]: number, [3]: number, [4]: number, [5]: number, [6]: lstg.Color }[]
+---@param v2 { [1]: number, [2]: number, [3]: number, [4]: number, [5]: number, [6]: lstg.Color }[]
+---@param v3 { [1]: number, [2]: number, [3]: number, [4]: number, [5]: number, [6]: lstg.Color }[]
+---@param v4 { [1]: number, [2]: number, [3]: number, [4]: number, [5]: number, [6]: lstg.Color }[]
 function lstg.RenderTexture(texname, blendmode, v1, v2, v3, v4)
 end
 
 --------------------------------------------------------------------------------
---- 文本绘制
 
--- 关于对齐：
--- 0x00 左对齐 & 上对齐
--- 0x01 水平居中
--- 0x02 右对齐
--- 0x04 垂直居中
--- 0x08 下对齐
+--- Text rendering
 
--- 关于其他 flag：
--- 0x10 残废的自动换行，建议只用于中文文本，否则英文单词直接寄
+---@alias lstg.TextAlignment
+---| 0 # Top left.
+---| 1 # Top center.
+---| 2 # Top right.
+---| 4 # Center left.
+---| 5 # Fully centered.
+---| 6 # Center right.
+---| 8 # Bottom left.
+---| 9 # Bottom center.
+---| 10 # Bottom right.
+---| 16 # Disable automatic line feed, useful for Chinese text. Add this to any of the other values.
 
---- [受到 lstg.SetImageScale 影响]  
---- 绘制图片字体  
+--- Draws the text with a HGE image font.  
+--- Affected by `lstg.SetImageScale()`.
 ---@param fntname string
 ---@param text string
 ---@param x number
 ---@param y number
 ---@param scale number
----@param align number
+---@param align lstg.TextAlignment
 function lstg.RenderText(fntname, text, x, y, scale, align)
 end
 
---- [受到 lstg.SetImageScale 影响]  
---- 注意，LuaSTG Plus、LuaSTG Ex Plus、LuaSTG Sub 的 RenderTTF 方法，scale 会自动乘以 0.5  
---- 绘制矢量字体  
+--- Draws the text with a truetype font.  
+--- Note that the scale is automatically halved in the LuaSTG Plus line of engines (includes Ex Plus and Sub).  
+--- Affected by `lstg.SetImageScale()`.
 ---@param ttfname string
 ---@param text string
 ---@param left number
 ---@param right number
 ---@param bottom number
 ---@param top number
----@param align number
+---@param align lstg.TextAlignment
 ---@param color lstg.Color
 ---@param scale number
 function lstg.RenderTTF(ttfname, text, left, right, bottom, top, align, color, scale)
 end
 
 --------------------------------------------------------------------------------
---- 模型渲染
+
 --- Model Rendering
 
---- [LuaSTG Ex Plus 新增]  
---- [LuaSTG Sub v0.1.0 移除]  
---- [LuaSTG Sub v0.15.0 重新添加]  
---- 指定位置、缩放、欧拉角（角度制）旋转参数，渲染模型  
---- [LuaSTG Ex Plus v?.?.? Add]  
---- [LuaSTG Sub v0.1.0 Remove]  
---- [LuaSTG Sub v0.15.0 Re-add]  
---- Rendering the model with position, scale, Euler angle (degress) rotation  
+--- Render the model with position, scale, and Euler angle (degress) rotation  
+---
+--- Readded in LuaSTG Sub v0.15.0.
 ---@param modname string
----@param x number
+---@param x number 
 ---@param y number
 ---@param z number
----@param roll number
----@param pitch number
----@param yaw number
----@param xscale number
----@param yscale number
----@param zscale number
----@overload fun(modname:string, x:number, y:number, z:number)
----@overload fun(modname:string, x:number, y:number, z:number, roll:number, pitch:number, yaw:number)
+---@param roll number|nil
+---@param pitch number|nil
+---@param yaw number|nil
+---@param xscale number|nil
+---@param yscale number|nil
+---@param zscale number|nil
 function lstg.RenderModel(modname, x, y, z, roll, pitch, yaw, xscale, yscale, zscale)
 end
 
---- [LuaSTG Sub v0.1.0 移除]  
---- [LuaSTG Sub v0.16.1 重新添加]  
---- 渲染碰撞判定，通过 F8 开启/关闭  
---- 会渲染 1、2、4、5 共四个碰撞组  
---- [LuaSTG Sub v0.1.0 Remove]  
---- [LuaSTG Sub v0.16.1 Re-add]  
---- Render collision detection, turn on/off with F8  
---- Will render 1, 2, 4, 5 total of four collision groups
+--- Render collision detection, turn on/off with F8.  
+--- Will render groups 1, 2, 4, and 5 (total of four collision groups).  
+---
+--- Readded in LuaSTG Sub v0.16.1.
 function lstg.DrawCollider()
 end
 
---- [LuaSTG Ex Plus 新增]  
---- [LuaSTG Sub v0.1.0 移除]  
---- [LuaSTG Sub v0.16.1 重新添加]  
---- 用指定颜色渲染指定碰撞组的碰撞体  
---- [LuaSTG Ex Plus v?.?.? Add]  
---- [LuaSTG Sub v0.1.0 Remove]  
---- [LuaSTG Sub v0.16.1 Re-add]  
---- Renders the colliders of the specified collision group with the specified color  
+--- Renders the colliders of the specified collision group with the specified color.  
+---
+--- Readded in LuaSTG Sub v0.16.1.
 ---@param group number
 ---@param color lstg.Color
 function lstg.RenderGroupCollider(group, color)
 end
 
 --------------------------------------------------------------------------------
---- 屏幕后处理（高级功能，高度平台相关）
 
---- [LuaSTG Sub 更改]
---- 应用屏幕后处理效果
---- samplerstate 目前统一填 6
---- floatbuffer 传入 float4 数组
---- texparam 则是以 { texname:string, samplerstate:number } 组成的数组
+--- Post-processing/shaders (advanced feature, highly platform-dependent)
+
+---@alias lstg.PostEffectSamplerState
+---| 0 # point+wrap
+---| 1 # point+clamp
+---| 2 # point+border_black
+---| 3 # point+border_white
+---| 4 # linear+wrap
+---| 5 # linear+clamp
+---| 6 # linear+border_black
+---| 7 # linear+border_white
+
+--- Apply the effects to the texture and render it to the screen.  
+---
+--- Changed in LuaSTG Sub.
 ---@param fxname string
 ---@param texname string
----@param samplerstate number
+---@param samplerstate lstg.PostEffectSamplerState
 ---@param blendmode lstg.BlendMode
----@param floatbuffer number[][]
+---@param floatbuffer { [1]: number, [2]: number, [3]: number, [4]: number }[]
+---@param texparam { [1]: string, [2]: lstg.PostEffectSamplerState }[]
 function lstg.PostEffect(fxname, texname, samplerstate, blendmode, floatbuffer, texparam)
 end
 
--- 参考 shader（boss_distortion.hlsl）
-local _ = [[
+-- Reference shader（boss_distortion.hlsl）
+--[[
 
-// 引擎参数
+// Engine parameters
 
-SamplerState screen_texture_sampler : register(s4); // RenderTarget 纹理的采样器
-Texture2D screen_texture            : register(t4); // RenderTarget 纹理
+SamplerState screen_texture_sampler : register(s4); // Render target sampler
+Texture2D screen_texture            : register(t4); // Render target texture
 cbuffer engine_data : register(b1)
 {
-    float4 screen_texture_size; // 纹理大小
-    float4 viewport;            // 视口
+    float4 screen_texture_size;
+    float4 viewport;
 };
 
-// 用户传递的参数
+// User parameters
 
 cbuffer user_data : register(b0)
 {
-    float4 center_pos;   // 指定效果的中心坐标
-    float4 effect_color; // 指定效果的中心颜色,着色时使用colorburn算法
-    float4 effect_param; // 多个参数：effect_size 指定效果的影响大小、effect_arg 变形系数、effect_color_size 颜色的扩散大小、timer 外部计时器
+    float4 center_pos;   // Effect center.
+    float4 effect_color; // Effect center's color, using colorburn algorithm.
+    float4 effect_param; // Effect parameters (in order): effect size, distortion factor, color diffusion size, and external timer.
 };
 
 #define effect_size       effect_param.x
@@ -359,25 +377,31 @@ cbuffer user_data : register(b0)
 #define effect_color_size effect_param.z
 #define timer             effect_param.w
 
-// 不变量
+// Shader constants
 
 float PI = 3.14159265f;
-float inner = 1.0f; // 边沿缩进
+float inner = 1.0f; // Edge indentation
 float cb_64 = 64.0f / 255.0f;
 
-// 方法
+// Shader methods
 
 float2 Distortion(float2 xy, float2 delta, float delta_len)
 {
     float k = delta_len / effect_size;
     float p = pow((k - 1.0f), 0.75f);
     float arg = effect_arg * p;
-    float2 delta1 = float2(sin(1.75f * 2.0f * PI * delta.x + 0.05f * delta_len + timer / 20.0f), sin(1.75f * 2.0f * PI * delta.y + 0.05f * delta_len + timer / 24.0f)); // 1.75f 此项越高，波纹越“破碎”
-    float delta2 = arg * sin(0.005f * 2.0f * PI * delta_len+ timer / 40.0f); // 0.005f 此项越高，波纹越密
-    return delta1 * delta2; // delta1：方向向量，delta2：向量长度，即返回像素移动的方向和距离
+    float2 delta1 = float2(
+             // 1.75f: The higher this term is, the more "broken" the ripples look.
+            sin(1.75f * 2.0f * PI * delta.x + 0.05f * delta_len + timer / 20.0f),
+            sin(1.75f * 2.0f * PI * delta.y + 0.05f * delta_len + timer / 24.0f)
+    );
+                          // 0.005f: Increasing this term increases ripple density.
+    float delta2 = arg * sin(0.005f * 2.0f * PI * delta_len+ timer / 40.0f);
+    // delta1 is the direction vector, delta2 is the vector length; i.e. return the direction and distance of pixel movement.
+    return delta1 * delta2;
 }
 
-// 主函数
+// Main methods
 
 struct PS_Input
 {
@@ -392,13 +416,13 @@ struct PS_Output
 
 PS_Output main(PS_Input input)
 {
-    float2 xy = input.uv * screen_texture_size.xy;  // 屏幕上真实位置
+    float2 xy = input.uv * screen_texture_size.xy;  // Actual screen position
     if (xy.x < viewport.x || xy.x > viewport.z || xy.y < viewport.y || xy.y > viewport.w)
     {
-        discard; // 抛弃不需要的像素，防止意外覆盖画面
+        discard; // Discard pixels outside the range to avoid accidental spilling.
     }
     float2 uv2 = input.uv;
-    float2 delta = xy - center_pos.xy;  // 计算效果中心到纹理采样点的向量
+    float2 delta = xy - center_pos.xy;  // Calculates the vector from the effect center to the texture sampling point.
     float delta_len = length(delta);
     delta = normalize(delta);
     if (delta_len <= effect_size)
@@ -415,10 +439,10 @@ PS_Output main(PS_Input input)
         }
     }
     
-    float4 tex_color = screen_texture.Sample(screen_texture_sampler, uv2); // 对纹理进行采样
+    float4 tex_color = screen_texture.Sample(screen_texture_sampler, uv2); // Sample the texture
     if (delta_len <= effect_color_size)
     {
-        // 扭曲着色
+        // Distort the coloring
         float k = delta_len / effect_color_size;
         float ak = effect_color.a * pow((1.0f - k), 1.2f);
         float4 processed_color = float4(max(cb_64, effect_color.r), max(cb_64, effect_color.g), max(cb_64, effect_color.b), effect_color.a);
@@ -435,29 +459,30 @@ PS_Output main(PS_Input input)
 }
 
 ]]
--- 参考 shader（texture_overlay.hlsl）：
-local _ = [[
 
-// 引擎参数
+-- Reference shader（texture_overlay.hlsl):
+--[[
 
-SamplerState screen_texture_sampler : register(s4); // RenderTarget 纹理的采样器
-Texture2D screen_texture            : register(t4); // RenderTarget 纹理
+// Engine parameters
+
+SamplerState screen_texture_sampler : register(s4); // Render target sampler
+Texture2D screen_texture            : register(t4); // Render target texture
 cbuffer engine_data : register(b1)
 {
-    float4 screen_texture_size; // 纹理大小
-    float4 viewport;            // 视口
+    float4 screen_texture_size;
+    float4 viewport;
 };
 
-// 用户传递的参数
+// User parameters
 
 SamplerState screen_texture_sampler1 : register(s0);
 Texture2D screen_texture1            : register(t0);
 
-// 方法
+// Shader methods
 
 float overlay(float base, float blend)
 {
-    // 叠加混合模式处理过程
+    // Overlay blendmode processing
     if (base < 0.5f)
     {
         return 2.0f * base * blend;
@@ -468,7 +493,7 @@ float overlay(float base, float blend)
     }
 }
 
-// 主函数
+// Main methods
 
 struct PS_Input
 {
@@ -483,8 +508,8 @@ struct PS_Output
 
 PS_Output main(PS_Input input)
 {
-    float4 color_top = screen_texture.Sample(screen_texture_sampler, input.uv); // 作为顶层
-    float4 color_bot = screen_texture1.Sample(screen_texture_sampler1, input.uv); // 作为底层
+    float4 color_top = screen_texture.Sample(screen_texture_sampler, input.uv);
+    float4 color_bot = screen_texture1.Sample(screen_texture_sampler1, input.uv);
     float4 color_out;
 
     color_out.r = overlay(color_bot.r, color_top.r);
@@ -501,35 +526,36 @@ PS_Output main(PS_Input input)
 }
 
 ]]
--- 参考调用：
-local _ = [[
+
+-- Usage:
+--[[
 
 lstg.PushRenderTarget("A")
--- 渲染点东西
+-- Render something
 lstg.PopRenderTarget()
 
 lstg.PushRenderTarget("B")
--- 渲染点东西
+-- Render something
 lstg.PopRenderTarget()
 
 lstg.PostEffect("texture_overlay", "A", 6, "", {
-    -- 不需要传递什么
+    -- No float parameters
 }, {
-    { "B", 6 }, -- 绑定到 t0、s0
+    { "B", 6 }, -- Binds to `t0`, `s0`
 })
 
 lstg.PushRenderTarget("C")
--- 渲染点东西
+-- Render something
 lstg.PopRenderTarget()
 
 lstg.PostEffect(
-    "boss_distortion", -- effect 名称
+    "boss_distortion", -- effect name
     "C", 6,
     "",
     {
-        -- 总共 3 个 float4
-        { x1, y1, 0, 0 }, -- centerX, centerY, 剩下的仅用于对齐
-        { fxr / 255.0, fxg / 255.0, fxb / 255.0, 125.0 / 255.0 }, -- color，浮点数，0.0 到 1.0，不是 0 到 255
+        -- Total of 3 `float4`s
+        { x1, y1, 0, 0 }, -- centerX, centerY, the rest is for alignment and are unused
+        { fxr / 255.0, fxg / 255.0, fxb / 255.0, 125.0 / 255.0 }, -- color in floating point, 0 to 1 instead of 0 to 255
         {
             _boss.aura_alpha * 400 * lstg.scale_3d, -- size
             1500 * _boss.aura_alpha / 128 * lstg.scale_3d, -- arg
@@ -537,7 +563,7 @@ lstg.PostEffect(
             _boss.timer, -- timer
         },
     },
-    {} -- 没有纹理和采样器
+    {} -- No textures/samplerstates
 )
 
 ]]

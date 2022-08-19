@@ -1,9 +1,9 @@
-# LuaSTG Sub Documentation
+# LuaSTG Sub Documentation (English)
 
-Documentation for the Lua API, implementation details, migration tutorials, etc. of the LuaSTG Sub engine.
+Documentation for the Lua API, implementation details, migration guides, etc. of the LuaSTG Sub engine.
 
-Also, these docs will provide code hints in vscode lua (sumneko) extension and IDEA emmylua extension.
+This documentation will provide intellisense in the Lua (sumneko) extension for
+VS Code and the emmylua extension for IntelliJ IDEA.
 
-LuaSTG Sub 引擎的 Lua API、实现细节、迁移教程等内容的文档。
-
-此外，这些文档将在 vscode 的 lua (sumneko) 扩展和 IDEA 的 emmylua 拓展中提供代码提示。
+## Credits
+[Kuanlan](https://github.com/Demonese) for maintaining LuaSTG Sub and writing the original documentation.

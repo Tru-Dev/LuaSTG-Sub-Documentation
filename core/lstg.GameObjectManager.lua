@@ -1,38 +1,46 @@
---------------------------------------------------------------------------------
---- LuaSTG Sub 游戏对象管理器
---- 璀境石
+---@meta
+--- LuaSTG Sub Documentation: Game Object Management
 --------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
---- 游戏对象管理器
+--- Game object pool management
 
----获取申请的对象数
----@return number
+--- Gets the total amount of instatiated objects.
+---@return integer
 function lstg.GetnObj()
 end
 
----回收所有对象，并释放绑定的资源
+--- Deletes all objects and releases the resources that are bound to them.
 function lstg.ResetPool()
 end
 
----【禁止在协同程序中调用此方法】
----更新所有游戏对象并触发游戏对象的frame回调函数
+--- > **Do not call in a coroutine or object method.**  
+---
+--- Updates all objects (except for paused objects).  
+--- First it updates velocity, then position and rotation (by `omiga` property).  
+--- Calls the object's individual frame callback.
+--- Also updates the object's particle system, if it exists.
 function lstg.ObjFrame()
 end
 
----【禁止在协同程序中调用此方法】
----绘制所有游戏对象并触发游戏对象的render回调函数
+--- > **Do not call in a coroutine or object method.**  
+---
+--- Renders all objects (except for hidden objects).
+--- Affected by `lstg.SetWorldFlag()`.  
+--- Objects with a smaller layer will be rendered first.
 function lstg.ObjRender()
 end
 
----【禁止在协同程序中调用此方法】  
---- 对所有游戏对象进行出界判断，如果离开场景边界，将会触发对象的 del 回调函数  
+--- > **Do not call in a coroutine or object method.**  
+---
+--- Checks for objects exiting the area set by `lstg.SetBound()`.  
+--- Triggers object deletion on objects found to be outsid this area.
 function lstg.BoundCheck()
 end
 
---- [LuaSTG Sub v0.17.0 修改]  
---- 更改场景边界，默认为-100, 100, -100, 100  
---- LuaSTG Sub v0.17.0 修复了设置场景边界时参数被取整为整数的问题  
+--- Sets the deletion boundary for objects.
+--- > Changed in LuaSTG Sub v0.17.0:  
+--- > - Default bounds are now -100, 100, -100, 100
+--- > - Fixed an issue where bounds were rounded to integer values
 ---@param left number
 ---@param right number
 ---@param bottom number
@@ -40,60 +48,66 @@ end
 function lstg.SetBound(left, right, bottom, top)
 end
 
----【禁止在协同程序中调用此方法】
----对两个碰撞组的对象进行碰撞检测，如果发生碰撞则触发groupidA内的对象的colli回调函数，并传入groupidB内的对象作为参数
----@param groupidA number @只能为0到15范围内的整数
----@param groupidB number @只能为0到15范围内的整数
+--- > **Do not call in a coroutine or object method.**  
+---
+--- Tests for collision between 2 collision groups.  
+--- Affected by `lstg.SetWorldFlag()`.
+--- If a collision occurs, triggers the collision callback for the object in group A, with the
+--- `other` parameter being the object in group B.  
+---@param groupidA integer Must be between 0 and 15.
+---@param groupidB integer Must be between 0 and 15.
 function lstg.CollisionCheck(groupidA, groupidB)
 end
 
----【禁止在协同程序中调用此方法】
----保存游戏对象的x, y坐标并计算dx, dy
+--- > **Do not call in a coroutine or object method.**  
+---
+--- Updates dx, dy, and rotation (if `navi` is set to true) for each object.
 function lstg.UpdateXY()
 end
 
----【禁止在协同程序中调用此方法】
----增加游戏对象的timer, ani计数器，如果对象被标记为kill或者del，则回收该对象
+--- > **Do not call in a coroutine or object method.**  
+---
+--- Increments objects' `timer` and `ani`.  
+--- Frees objects that are marked `"kill"` or `"del"`
 function lstg.AfterFrame()
 end
 
 --------------------------------------------------------------------------------
---- 游戏对象
 
---- 申请游戏对象，并将游戏对象和指定的class绑定，剩余的参数将会传递给init回调函数并执行
+--- Individual game object management
+
+--- Instantiate a game object.  
+--- Runs the class's object initialization callback.
 ---@param class lstg.Class
----@vararg any
+---@param ... any Passed to the initialization callback function.
 ---@return lstg.GameObject
 function lstg.New(class, ...)
-	---@type lstg.GameObject
-	local ret = {}
-	return ret
 end
 
---- 触发指定游戏对象的del回调函数，并将该对象标记为del状态，剩余参数将传递给del回调函数
+--- Triggers the deletion callback on the object and sets its status to `"del"`.
 ---@param unit lstg.GameObject
----@vararg any
+---@param ... any Passed to the deletion callback function.
 function lstg.Del(unit, ...)
 end
 
---- 触发指定游戏对象的kill回调函数，并将该对象标记为kill状态，剩余参数将传递给kill回调函数
+--- Triggers the kill callback on the object and sets its status to `"kill"`.
 ---@param unit lstg.GameObject
----@vararg any
+---@param ... any Passed to the kill callback function.
 function lstg.Kill(unit, ...)
 end
 
---- 检查指定游戏对象的引用是否有效，如果返回假，则该对象已经被对象池回收或不是 有效的lstg.GameObject对象；
---- unit参数可以是任何值，因此也可以用来判断传入的参数 是否是游戏对象
+--- Checks whether the parameter is a valid game object.  
+--- A valid game object is anything instantiated through `lstg.New()` and not deleted or killed.
 ---@param unit any
 ---@return boolean
 function lstg.IsValid(unit)
-	return false
 end
 
 --------------------------------------------------------------------------------
---- 碰撞相关
 
---- 检查指定对象是否在指定的矩形区域内
+--- Object collision detection
+
+--- Checks if the object is in the specified rectangular area.
 ---@param unit lstg.GameObject
 ---@param left number
 ---@param right number
@@ -101,202 +115,257 @@ end
 ---@param top number
 ---@return boolean
 function lstg.BoxCheck(unit, left, right, bottom, top)
-	return true
 end
 
---- 检查两个对象是否发生碰撞
+--- Checks the collision on 2 objects.
+--- Looks at active worlds to check, see `lstg.ActiveWorlds()`.
 ---@param unitA lstg.GameObject
 ---@param unitB lstg.GameObject
----@param ignoreworldmask boolean @如果该参数为true，则忽略world掩码
+---@param ignoreworldmask boolean If true, ignores world mask.
+---@return boolean
 function lstg.ColliCheck(unitA, unitB, ignoreworldmask)
-	return false
 end
 
 ---@alias lstg.ObjList.Next fun(groupid:number, objid:number):number, lstg.GameObject
 
---- 碰撞组迭代器，如果填写的碰撞组不是有效的碰撞组，则对所有游戏对象进行迭代
----@param groupid number
+--- Iterates through the specified collision group, or all objects if nil.
+---@param groupid integer|nil
 ---@return lstg.ObjList.Next, number, number
 function lstg.ObjList(groupid)
 end
 
 --------------------------------------------------------------------------------
---- 属性访问（用于游戏对象的 lua metatable）
 
---- 更改游戏对象上某些属性的值
+--- Game object property access (game object's metamethods)
+
+--- Sets a property on the game object.  
+--- Equivalent to the game object's `__newindex` metamethod.
 ---@param t lstg.GameObject
 ---@param k number|string
 ---@param v any
 function lstg.SetAttr(t, k, v)
 end
 
---- 获取游戏对象上某些属性的值
+--- Gets a property on the game object.  
+--- Equivalent to the game object's `__index` metamethod.
 ---@param t lstg.GameObject
 ---@param k number|string
+---@return any
 function lstg.GetAttr(t, k)
 end
 
 --------------------------------------------------------------------------------
---- 帮助函数
 
----设置游戏对象的速度
+--- Helper functions
+
+--- Sets the game object's velocity vector.
 ---@param unit lstg.GameObject
----@param v number
----@param a number
----@param updaterot boolean @如果该参数为true，则同时设置对象的rot
+---@param v number Speed value.
+---@param a number Angle value.
+---@param updaterot boolean If true, set the object's render rotation (`rot` field).
 function lstg.SetV(unit, v, a, updaterot)
 end
 
+--- Gets the speed and angle of the object.
 ---@param unit lstg.GameObject
----@return number, number @速度大小，速度朝向
+---@return number, number
 function lstg.GetV(unit)
 end
 
---- 计算向量的朝向，可以以以下的组合方式填写参数：
---- ```txt
---- lstg.GameObject, lstg.GameObject
---- lstg.GameObject, x, y
---- x, y, lstg.GameObject
---- x1, y1, x2, y2
---- ```
----@param x1 lstg.GameObject|number
----@param y1 lstg.GameObject|number
----@param x2 lstg.GameObject|number|nil
----@param y2 number|nil
+--- Calculates the angle between two game objects.
+---@param a lstg.GameObject
+---@param b lstg.GameObject
 ---@return number
-function lstg.Angle(x1, y1, x2, y2)
-	return 0
+function lstg.Angle(a, b)
 end
 
---- 计算向量的模，可以以以下的组合方式填写参数：
---- ```txt
---- lstg.GameObject, lstg.GameObject
---- lstg.GameObject, x, y
---- x, y, lstg.GameObject
---- x1, y1, x2, y2
---- ```
----@param x1 lstg.GameObject|number
----@param y1 lstg.GameObject|number
----@param x2 lstg.GameObject|number|nil
----@param y2 number|nil
+--- Calculates the angle between a game object and a point.
+---@param unit lstg.GameObject
+---@param x number
+---@param y number
+---@return number
+function lstg.Angle(unit, x, y)
+end
+
+--- Calculates the angle between a point and a game object.
+---@param x number
+---@param y number
+---@param unit lstg.GameObject
+---@return number
+function lstg.Angle(x, y, unit)
+end
+
+--- Calculates the angle between two points.
+---@param x1 number
+---@param y1 number
+---@param x2 number
+---@param y2 number
+---@return number
+function lstg.Angle(x1, y1, x2, y2)
+end
+
+--- Calculates the distance between two game objects.
+---@param a lstg.GameObject
+---@param b lstg.GameObject
+---@return number
+function lstg.Dist(a, b)
+end
+
+--- Calculates the distance between a game object and a point.
+---@param unit lstg.GameObject
+---@param x number
+---@param y number
+---@return number
+function lstg.Dist(unit, x, y)
+end
+
+--- Calculates the distance between a point and a game object.
+---@param x number
+---@param y number
+---@param unit lstg.GameObject
+---@return number
+function lstg.Dist(x, y, unit)
+end
+
+--- Calculates the distance between two points.
+---@param x1 number
+---@param y1 number
+---@param x2 number
+---@param y2 number
 ---@return number
 function lstg.Dist(x1, y1, x2, y2)
-	return 0
 end
 
 --------------------------------------------------------------------------------
---- 渲染
 
---- 设置绑定在游戏对象上的资源的混合模式和顶点颜色
+--- Individual object rendering
+
+--- Sets the blend mode and color of the game object's bound resource.
 ---@param unit lstg.GameObject
----@param blend string
----@param a number @[0~255]
----@param r number @[0~255]
----@param g number @[0~255]
----@param b number @[0~255]
+---@param blend lstg.BlendMode
+---@param a number Alpha value, clamped between 0 to 255.
+---@param r number Red value, clamped between 0 to 255.
+---@param g number Green value, clamped between 0 to 255.
+---@param b number Blue value, clamped between 0 to 255.
 function lstg.SetImgState(unit, blend, a, r, g, b)
 end
 
---- 执行游戏对象默认渲染方法
+--- Runs the default render method of the game object
+--- (render the object's `img` resource with color, rotation, scale, etc. applied).
 ---@param unit lstg.GameObject
 function lstg.DefaultRenderFunc(unit)
 end
 
 --------------------------------------------------------------------------------
---- 游戏对象上的粒子对象
 
---- 设置绑定在游戏对象上的粒子特效的混合模式和顶点颜色
+--- Game object particle system methods
+
+--- Sets the blend mode and color of a game object's bound particle system.
 ---@param unit lstg.GameObject
----@param blend string
----@param a number @[0~255]
----@param r number @[0~255]
----@param g number @[0~255]
----@param b number @[0~255]
+---@param blend lstg.BlendMode
+---@param a number Alpha value, clamped between 0 to 255.
+---@param r number Red value, clamped between 0 to 255.
+---@param g number Green value, clamped between 0 to 255.
+---@param b number Blue value, clamped between 0 to 255.
 function lstg.SetParState(unit, blend, a, r, g, b)
 end
 
---- 停止游戏对象上的粒子发射器
+--- Stops the game object's particle emission.
 ---@param unit lstg.GameObject
 function lstg.ParticleStop(unit)
 end
 
---- 启动游戏对象上的粒子发射器
+--- Starts the game object's particle emission.
 ---@param unit lstg.GameObject
 function lstg.ParticleFire(unit)
 end
 
---- 获取游戏对象上的粒子发射器的粒子数量
+--- Gets the current amount of particles being emitted from the game object.
 ---@param unit lstg.GameObject
 ---@return number
 function lstg.ParticleGetn(unit)
 end
 
---- 设置粒子发射器的粒子发射密度
+--- Sets the emission density of the game object's particle emitter.
 ---@param unit lstg.GameObject
----@param emission number @每秒发射的粒子数量
+---@param emission number Particles/second
 function lstg.ParticleSetEmission(unit, emission)
 end
 
---- 获取粒子发射器的粒子发射密度
+--- Gets the emission density of the game object's particle emitter, in particles per second.
 ---@param unit lstg.GameObject
----@return number @每秒发射的粒子数量
+---@return number
 function lstg.ParticleGetEmission(unit)
 end
 
 --------------------------------------------------------------------------------
---- 游戏对象池更新暂停（高级功能）
 
+--- Super pause (advanced feature)  
+--- If super pause is set, then it pauses updates of all objects that have `nopause` set to false
+--- (which is the default).
 
---- 设置游戏对象池下一帧开始暂停更新的时间（帧）
+--- Sets the pause time in frames, the game will subtract one from this number
+--- each frame until it hits 0.  
+--- Pausing updates the frame after this is called.
 ---@param t number
 function lstg.SetSuperPause(t)
 end
 
---- 更改游戏对象池下一帧开始暂停更新的时间（帧），等效于GetSuperPause并加上t，然后SetSuperPause
+--- Adds to the pause time in frames.
+--- Equivalent to `lstg.SetSuperPause(lstg.GetSuperPause() + t)`.
+--- Pausing updates the frame after this is called.
 ---@param t number
 function lstg.AddSuperPause(t)
 end
 
---- 获取游戏对象池暂停更新的时间（帧），获取的是下一帧的
+--- Gets the amount of frames until super pause ends, scheduled for the next frame
+--- (meaning that it updates with `lstg.SetSuperPause()` and `lstg.AddSuperPause()`
+--- within the same frame).  
 ---@return number
 function lstg.GetSuperPause()
 end
 
---- 获取当前帧游戏对象池暂停更新的时间（帧）
+--- Gets the amount of frames until super pause ends,
+--- does not update for `lstg.SetSuperPause()` or `lstg.AddSuperPause()` in the current frame.
+---@return number
 function lstg.GetCurrentSuperPause()
 end
 
 --------------------------------------------------------------------------------
---- 游戏对象world掩码（高级功能）
 
---- 设置当前激活的world掩码
----@param mask number
+--- World mask (advanced feature)  
+--- Rendering and collisions only occur on the worlds specified by the current world flag.  
+--- There are up to 64 worlds, each represented by a single bit in the mask.
+
+--- Sets the current world flag.
+---@param mask integer
 function lstg.SetWorldFlag(mask)
 end
 
---- 获取当前激活的 world 掩码
+--- Gets the current world flag.
 ---@return number
 function lstg.GetWorldFlag()
 end
 
---- 判断两个对象是否在同一个 world 内，当两个游戏对象的 world 掩码相同或者按位与不为 0 时返回 true
----@param unitA lstg.GameObject
----@param unitB lstg.GameObject
+--- Checks if the two objects share any worlds (does a bitwise and on their world flags).
+---@param maskA integer
+---@param maskB integer
 ---@return boolean
-function lstg.IsSameWorld(unitA, unitB)
+function lstg.IsInWorld(maskA, maskB)
 end
 
---- 设置多 world 的掩码，最多可支持 4 个不同的掩码，将会在进行碰撞检测的时候用到
----@param maskA number
----@param maskB number
----@param maskC number
----@param maskD number
+--- Sets the mask for up to 4 worlds, used in `lstg.IsSameWorld()` and `lstg.ColliCheck()`.  
+--- Parameters default to 0.
+---@param maskA integer|nil
+---@param maskB integer|nil
+---@param maskC integer|nil
+---@param maskD integer|nil
 function lstg.ActiveWorlds(maskA, maskB, maskC, maskD)
 end
 
---- 检查两个对象是否存在于相同的 world 内，参考ActiveWorlds
----@param unitA lstg.GameObject
----@param unitB lstg.GameObject
+--- Returns true if both masks are in an active world mask (see `lstg.ActiveWorlds()`).
+---@param maskA integer
+---@param maskB integer
 ---@return boolean
-function lstg.CheckWorlds(unitA, unitB)
+function lstg.IsSameWorld(maskA, maskB)
 end

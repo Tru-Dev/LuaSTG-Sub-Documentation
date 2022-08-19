@@ -1,28 +1,23 @@
---------------------------------------------------------------------------------
---- LuaSTG Sub 音频命令
---- 璀境石
+---@meta
+--- LuaSTG Sub Documentation: Audio System
 --------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
---- 迁移指南
-
--- 关于全局音量：
--- lstg.SetSEVolume 和 lstg.SetBGMVolume 现在对播放中的音频也会生效
-
--- 关于 lstg.UpdateSound
--- 已经移除
+--- Migration guide:  
+--- Setting the global sound effect and music volume works for playing audio now.  
+--- `lstg.UpdateSound` has been removed.
 
 --------------------------------------------------------------------------------
---- 状态
 
+--- Status of an audio resource (sound/bgm)
 ---@alias lstg.AudioStatus '"playing"' | '"paused"' | '"stopped"'
 
 --------------------------------------------------------------------------------
---- 音效
+
+--- Sound effects
 
 ---@param sndname string
----@param volume number
----@param pan number
+---@param volume number Range 0 to 1
+---@param pan number Range -1 to 1
 function lstg.PlaySound(sndname, volume, pan)
 end
 
@@ -43,19 +38,25 @@ end
 function lstg.GetSoundState(sndname)
 end
 
---- [LuaSTG Sub 变更]
---- 设置全局音效音量
----@param volume number
+--- Sets global volume for sound effect resources.
+--- Affects playing sounds, unlike previous iterations of LuaSTG.
+---@param volume number Range 0 to 1
 function lstg.SetSEVolume(volume)
 end
 
---------------------------------------------------------------------------------
---- 音乐
+--- Sets the volume for a single sound effect resource.
+---@param sndname string
+---@param volume number Range 0 to 1
+function lstg.SetSEVolume(sndname, volume)
+end
 
---- position 以秒为单位
+--------------------------------------------------------------------------------
+
+--- Background music
+
 ---@param bgmname string
----@param volume number
----@param position number
+---@param volume number Range 0 to 1
+---@param position number Time from the beginning of the song in seconds.
 function lstg.PlayMusic(bgmname, volume, position)
 end
 
@@ -76,10 +77,14 @@ end
 function lstg.GetMusicState(bgmname)
 end
 
---- [LuaSTG Sub 变更]
---- 设置全局音乐音量
---- 当参数为 2 个时，设置指定音乐的音量
----@param volume number
----@overload fun(bgmname:string, volume:number)
+--- Sets global volume for background music resources.
+--- Affects playing music, unlike previous iterations of LuaSTG.
+---@param volume number Range 0 to 1
 function lstg.SetBGMVolume(volume)
+end
+
+--- Sets the volume for a single background music resource.
+---@param bgmname string
+---@param volume number Range 0 to 1
+function lstg.SetBGMVolume(bgmname, volume)
 end

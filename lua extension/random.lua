@@ -1,20 +1,27 @@
+---@meta
+--- LuaSTG Sub Extension Documentation: Random Number Generation
 --------------------------------------------------------------------------------
---- Random number generator
---- xoshiro / xoroshiro https://prng.di.unimi.it/
---- PCG / jsf / sfc https://www.pcg-random.org/
---- Lua binding write by 璀境石
+--- For overloading functions
+---@diagnostic disable:duplicate-set-field
+
+--------------------------------------------------------------------------------
+
+--- xoshiro / xoroshiro algorithms => https://prng.di.unimi.it/
+--- PCG / jsf / sfc => https://www.pcg-random.org/
+--- Lua bindings by Kuanlan
+
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
---- recommended generator
 
+--- Recommended generators:
 --- 1. pcg64_oneseq
 --- 2. pcg64_fast
 --- 3. xoshiro256ss
 
 --------------------------------------------------------------------------------
---- sample code
 
+--- Sample code:
 --[[
 
 local random = require("random")
@@ -50,47 +57,59 @@ end
 --]]
 
 --------------------------------------------------------------------------------
---- generator concept
+
+--- Generator API
 
 ---@class random.generator
-local C = {}
+local C
 
---- set or get seed  
----@param value number @integer value
----@overload fun(self:random.generator):number
+--- Sets the seed.
+---@param value integer
 function C:seed(value) end
 
---- generate integer value  
---- rng:integer() will generate integer value in range [0, max lua_Integer]  
---- rng:integer(b) will generate integer value in range [0, b]  
---- rng:integer(a, b) will generate integer value in range [a, b]  
----@param min number @integer value
----@param max number @integer value
----@return number @integer value
----@overload fun(self:random.generator):number
----@overload fun(self:random.generator, max:number):number
+--- Gets the seed.
+function C:seed() end
+
+--- Generates an integer value between 0 and the maximum value of lua_Integer.
+---@return integer
+function C:integer() end
+
+--- Generates an integer value between 0 and `max`.
+---@param max integer
+---@return integer
+function C:integer(max) end
+
+--- Generates an integer value between `min` and `max`.
+---@param min integer
+---@param max integer
+---@return integer
 function C:integer(min, max) end
 
---- generate float value  
---- rng:number() will generate float value in range [0.0, 1.0]  
---- rng:number(b) will generate float value in range [0.0, b]  
---- rng:number(a, b) will generate float value in range [a, b]  
+--- Generates a float value between 0.0 and 1.0.
+---@return integer
+function C:number() end
+
+--- Generates a float value between 0.0 and `max`.
+---@param max number
+---@return number
+function C:number(max) end
+
+--- Generates a float value between `min` and `max`.
 ---@param min number
 ---@param max number
 ---@return number
----@overload fun(self:random.generator):number
----@overload fun(self:random.generator, max:number):number
 function C:number(min, max) end
 
---- generate integer value -1 or 1  
----@return number @integer value
+--- Returns either -1 or 1.
+---@return -1|1
 function C:sign() end
 
 --------------------------------------------------------------------------------
+
 --- random library
 
 ---@class random
-local M = {}
+local M
 
 ---------- splitmix family ----------
 
