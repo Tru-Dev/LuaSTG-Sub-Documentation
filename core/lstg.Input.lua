@@ -85,3 +85,4 @@ end
 ---@class lstg.Input
 ---@field Keyboard lstg.Input.Keyboard
 ---@field Mouse lstg.Input.Mouse
+lstg.Input = {}
