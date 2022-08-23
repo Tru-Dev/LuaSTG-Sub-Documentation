@@ -39,7 +39,7 @@ end
 
 --- Empties the specified resource pool. 
 ---@param respool lstg.ResourcePoolType
-function lstg.RemoveResource(respool, restype, resname)
+function lstg.RemoveResource(respool)
 end
 
 --- Removes the specified resource from the pool.
