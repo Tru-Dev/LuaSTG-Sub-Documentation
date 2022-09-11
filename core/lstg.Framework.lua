@@ -145,7 +145,8 @@ end
 
 --- Resource Management
 
---- Equivalent to `require()`, except it takes a path and an optional archive path to search in.
+--- Equivalent to `dofile()`, except for an additional optional archive path to search in.  
+--- Does not do any of the module checking that `require()` does.
 ---@param path string
 ---@param archivefile string|nil
 ---@return any
